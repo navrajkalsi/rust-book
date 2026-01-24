@@ -12,7 +12,7 @@ fn main() {
     loop {
         println!("Please input your guess.");
 
-        let mut guess = String::new();
+        let mut guess = String::new(); // type is inferred to be String
 
         io::stdin()
             .read_line(&mut guess)
@@ -29,7 +29,7 @@ fn main() {
         println!("You guessed: {guess}");
 
         match guess.cmp(&secret_number) {
-            Ordering::Less => println!("Too small!"),
+            Ordering::Less => println!("Too small!"), // called as arms of match
             Ordering::Greater => println!("Too big!"),
             Ordering::Equal => {
                 println!("You Win!");
