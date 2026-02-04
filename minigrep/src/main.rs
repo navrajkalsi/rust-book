@@ -16,7 +16,7 @@ fn main() {
     // let config = Config::new(&args);
 
     let config = Config::build(&args).unwrap_or_else(|err| {
-        println!("Problem parsing arguments: {err}");
+        eprintln!("Problem parsing arguments: {err}");
         process::exit(1);
     });
 
@@ -25,7 +25,7 @@ fn main() {
 
     // here we do not need the Ok variant, therefore using if let makes more sense
     if let Err(err) = run(config) {
-        println!("Application error: {err}");
+        eprintln!("Application error: {err}");
         process::exit(1);
     }
 }
