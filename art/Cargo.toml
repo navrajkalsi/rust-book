@@ -1,0 +1,8 @@
+[package]
+name = "navrajkalsi_art"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Art crate from the rust book, chapter 14"
+
+[dependencies]

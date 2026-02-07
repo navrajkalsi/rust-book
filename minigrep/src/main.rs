@@ -6,6 +6,7 @@ use std::{env, error::Error, fs, process};
 
 // use -- to pass anything after it to the binary and not to cargo
 fn main() {
+    // BEFORE LEARNING ABOUT CLOSURES AND ITERATORS
     let args: env::Args = env::args();
     // since .collect() can be used to create any collection, therefore
     // the type needs to be annotated explicitly
@@ -16,6 +17,13 @@ fn main() {
     // let config = Config::new(&args);
 
     let config = Config::build(&args).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
+
+    // AFTER LEARNING ABOUT CLOSURES AND ITERATORS
+    // passing the ownership of the args iterator directly to build2
+    let config = Config::build2(env::args()).unwrap_or_else(|err| {
         eprintln!("Problem parsing arguments: {err}");
         process::exit(1);
     });
@@ -63,6 +71,29 @@ impl Config {
 
         let query = args[1].clone();
         let file_path = args[2].clone();
+
+        let ignore_case = env::var("IGNORE_CASE").is_ok();
+
+        Ok(Config {
+            query,
+            file_path,
+            ignore_case,
+        })
+    }
+
+    // accepts ownership of a type that implements the Iterator trait and returns String values
+    fn build2(mut args: impl Iterator<Item = String>) -> Result<Config, &'static str> {
+        args.next();
+
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string"),
+        };
+
+        let file_path = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a file path"),
+        };
 
         let ignore_case = env::var("IGNORE_CASE").is_ok();
 
