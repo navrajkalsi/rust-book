@@ -1,4 +1,4 @@
-use smart_pointers::{MyBox, hello};
+use smart_pointers::{CustomSmartPointer, MyBox, hello};
 use std::ops::Deref;
 
 fn main() {
@@ -42,4 +42,31 @@ fn main() {
     // but the borrowing rules don’t guarantee that.
     // Therefore, Rust can’t make the assumption that converting an immutable reference
     // to a mutable reference is possible.
+
+    let _c = CustomSmartPointer {
+        data: String::from("my stuff"),
+    };
+    let _d = CustomSmartPointer {
+        data: String::from("other stuff"),
+    };
+    println!("CustomSmartPointers created");
+    // now the drop method will be called we implementated the drop trait on the struct
+    // the vars are dropped in reverse order of their declarations
+    // values can also be cleaned manually
+    // NOTE: this is not us calling the drop method, this is a different function from
+    // std::mem::drop
+    // the method drop cannot be called explicitly because of double free error as rust will also
+    // try to call it regardless at the end of the scope
+    drop(_d);
+    println!("CustomSmartPointer dropped before the end of main");
+
+    // NOTE:
+    // Rc<T> enables multiple owners of the same data; Box<T> and RefCell<T> have single owners.
+    //
+    // Box<T> allows immutable or mutable borrows checked at compile time;
+    // Rc<T> allows only immutable borrows checked at compile time;
+    // RefCell<T> allows immutable or mutable borrows checked at runtime.
+    //
+    // Because RefCell<T> allows mutable borrows checked at runtime,
+    // you can mutate the value inside the RefCell<T> even when the RefCell<T> is immutable.
 }

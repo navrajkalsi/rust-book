@@ -5,6 +5,7 @@
 
 use std::ops::Deref;
 
+// using Deref trait
 pub struct MyBox<T>(T);
 
 impl<T> MyBox<T> {
@@ -25,4 +26,15 @@ impl<T> Deref for MyBox<T> {
 
 pub fn hello(name: &str) {
     println!("Hello, {name}.");
+}
+
+// using Drop trait
+pub struct CustomSmartPointer {
+    pub data: String,
+}
+
+impl Drop for CustomSmartPointer {
+    fn drop(&mut self) {
+        println!("Dropping CustomSmartPointer with data: {}", self.data);
+    }
 }
