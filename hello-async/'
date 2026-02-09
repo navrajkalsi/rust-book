@@ -1,0 +1,32 @@
+use std::time::Duration;
+
+fn main() {
+    // block_on start the async runtime(tokio in case of trpl)
+    // and runs the provided async block
+    trpl::block_on(async {
+        // spawn_task is used to create a new async task
+        // this task runs CONCURRENTLY, not parallely, as the runtime will switch the control of
+        // the program from one part to another, but cannot run both loop at once
+        // PARALLELLSIM is achieved via threads
+        let handle = trpl::spawn_task(async {
+            for i in 1..10 {
+                println!("hi number {i} from the first task!");
+                // this sleep await lets the control move to other part,
+                // like the next loop
+                trpl::sleep(Duration::from_millis(500)).await;
+            }
+        });
+
+        for i in 1..5 {
+            println!("hi number {i} from the second task!");
+            // when this loop awaits, the control can move to any loop that is ready
+            trpl::sleep(Duration::from_millis(500)).await;
+        }
+
+        // as soon as the second loop exhausts the spawned task will also be terminated as we are
+        // now leaving this scope
+        // so we need to await the handle of the spawned task for it to finish.
+        // NOTE this will not block
+        handle.await.unwrap();
+    });
+}
