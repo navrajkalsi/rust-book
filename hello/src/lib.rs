@@ -1,14 +1,20 @@
 #![allow(unused)]
 
-use std::thread;
+use std::{
+    sync::{Arc, Mutex, mpsc},
+    thread,
+};
 
 pub struct ThreadPool {
-    threads: Vec<thread::JoinHandle<()>>,
+    workers: Vec<Worker>,
+    sender: Option<mpsc::Sender<Job>>,
 }
 
 pub enum PoolCreationError {
     ZeroRequested(String),
 }
+
+type Job = Box<dyn FnOnce() + Send + 'static>;
 
 impl ThreadPool {
     /// Create a new ThreadPool.
@@ -21,11 +27,20 @@ impl ThreadPool {
     pub fn new(size: usize) -> ThreadPool {
         assert_ne!(size, 0);
 
-        let mut threads = Vec::with_capacity(size);
+        let (sender, receiver) = mpsc::channel();
 
-        for _ in 0..size {}
+        let receiver = Arc::new(Mutex::new(receiver));
 
-        ThreadPool { threads }
+        let mut workers = Vec::with_capacity(size);
+
+        for id in 0..size {
+            workers.push(Worker::new(id, Arc::clone(&receiver)));
+        }
+
+        ThreadPool {
+            workers,
+            sender: Some(sender),
+        }
     }
 
     /// Create a new ThreadPool.
@@ -38,11 +53,20 @@ impl ThreadPool {
                 "Zero size was requested",
             )))
         } else {
-            let mut threads = Vec::with_capacity(size);
+            let (sender, receiver) = mpsc::channel();
 
-            for _ in 0..size {}
+            let receiver = Arc::new(Mutex::new(receiver));
 
-            Ok(ThreadPool { threads })
+            let mut workers = Vec::with_capacity(size);
+
+            for id in 0..size {
+                workers.push(Worker::new(id, Arc::clone(&receiver)));
+            }
+
+            Ok(ThreadPool {
+                workers,
+                sender: Some(sender),
+            })
         }
     }
 
@@ -50,5 +74,58 @@ impl ThreadPool {
     where
         F: FnOnce() + Send + 'static,
     {
+        let job = Box::new(f);
+
+        // self.sender will always be Some here
+        self.sender.as_ref().unwrap().send(job).unwrap();
+    }
+}
+
+// cleanup
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        // have to explicity drop the sender, so as to make the receivers/workers exit
+        drop(self.sender.take());
+
+        for worker in self.workers.drain(..) {
+            println!("Shutting down worker {}", worker.id);
+
+            worker.thread.join().unwrap();
+        }
+    }
+}
+
+struct Worker {
+    id: usize,
+    thread: thread::JoinHandle<()>,
+}
+
+impl Worker {
+    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
+        Worker {
+            id,
+            thread: thread::spawn(move || {
+                loop {
+                    // before graceful shutdown: (no need to check if recv errors or not)
+                    // let job = receiver.lock().unwrap().recv().unwrap();
+                    // println!("Worker {id} got a job; executing.");
+                    // job();
+
+                    let message = receiver.lock().unwrap().recv();
+
+                    match message {
+                        Ok(job) => {
+                            println!("Worker {id} got a job; executing.");
+
+                            job();
+                        }
+                        Err(_) => {
+                            println!("Worker {id} disconnected; shutting down.");
+                            break;
+                        }
+                    }
+                }
+            }),
+        }
     }
 }
